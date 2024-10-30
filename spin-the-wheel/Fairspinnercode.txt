@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Who's gonna grade your NHD</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+      position: relative;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .pointer {
+      width: 0;
+      height: 0;
+      border-top: 20px solid transparent;
+      border-bottom: 20px solid transparent;
+      border-right: 30px solid black; /* Pointer facing left */
+      position: absolute;
+      top: 50%;
+      right: 30px;
+      transform: translateY(-50%);
+      z-index: 1;
+    }
+
+    canvas {
+      border-radius: 50%;
+      box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 24px;
+      display: none;
+    }
+
+    .spin-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    .spin-button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Who's gonna grade your NHD</h1>
+  <div class="pointer"></div> <!-- Pointer on the right -->
+  <canvas id="wheel" width="400" height="400"></canvas>
+  <button class="spin-button" onclick="spinWheel()">Spin the Wheel!</button>
+  <div id="result"></div>
+
+  <script>
+    const wheel = document.getElementById('wheel');
+    const ctx = wheel.getContext('2d');
+    const segments = ['Rashid', 'Costabile'];
+    const colors = ['#FF6347', '#4682B4']; // Red and Blue
+    let isSpinning = false;
+
+    // Exponential decay function
+    function exponentialDecay(progress) {
+      return Math.exp(-5 * progress);
+    }
+
+    // Draw the wheel with dynamically shrinking Rashid section
+    function drawWheel(rashidFraction) {
+      const arcSizeRashid = (2 * Math.PI) * rashidFraction;
+      const arcSizeCostabile = (2 * Math.PI) - arcSizeRashid;
+
+      // Draw Rashid segment
+      ctx.beginPath();
+      ctx.moveTo(200, 200);
+      ctx.arc(200, 200, 200, 0, arcSizeRashid);
+      ctx.closePath();
+      ctx.fillStyle = colors[0];
+      ctx.fill();
+      drawTextOnSegment('Rashid', arcSizeRashid / 2);
+
+      // Draw Costabile segment
+      ctx.beginPath();
+      ctx.moveTo(200, 200);
+      ctx.arc(200, 200, 200, arcSizeRashid, arcSizeRashid + arcSizeCostabile);
+      ctx.closePath();
+      ctx.fillStyle = colors[1];
+      ctx.fill();
+      drawTextOnSegment('Costabile', arcSizeRashid + arcSizeCostabile / 2);
+    }
+
+    // Draw text centered on a segment
+    function drawTextOnSegment(text, angle) {
+      ctx.save();
+      ctx.translate(200, 200); // Move to the center of the wheel
+      ctx.rotate(angle); // Rotate to align text along the segment
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'white';
+      ctx.font = '24px Arial';
+      ctx.fillText(text, 100, 10); // Adjust distance from the center
+      ctx.restore();
+    }
+
+    // Spin the wheel with randomized duration
+    function spinWheel() {
+      if (isSpinning) return; // Prevent multiple clicks
+
+      isSpinning = true;
+      const resultElement = document.getElementById('result');
+      resultElement.style.display = 'none'; // Hide previous result
+
+      const spinDuration = Math.random() * 5000 + 5000; // 5 to 10 seconds
+      let currentAngle = 0;
+      const endAngle = 2 * Math.PI * 5 + Math.PI; // 5 spins and land on "Costabile"
+      const startTime = performance.now();
+
+      function animateSpin(timestamp) {
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / spinDuration, 1); // Ensure progress doesn't exceed 1
+
+        const easedProgress = 1 - Math.pow(1 - progress, 3); // Ease-out effect
+        const angle = easedProgress * (endAngle - currentAngle);
+        const rashidFraction = exponentialDecay(easedProgress); // Shrinking Rashid section
+
+        ctx.clearRect(0, 0, wheel.width, wheel.height); // Clear previous frame
+        ctx.save();
+        ctx.translate(200, 200);
+        ctx.rotate(angle);
+        ctx.translate(-200, -200);
+        drawWheel(rashidFraction); // Draw wheel with shrinking Rashid
+        ctx.restore();
+
+        if (progress < 1) {
+          requestAnimationFrame(animateSpin);
+        } else {
+          isSpinning = false;
+          showResult('Costabile'); // Always lands on "Costabile"
+        }
+      }
+
+      requestAnimationFrame(animateSpin);
+    }
+
+    // Show the result
+    function showResult(result) {
+      const resultElement = document.getElementById('result');
+      resultElement.textContent = `The wheel landed on: ${result}! 🎉`;
+      resultElement.style.display = 'block';
+    }
+
+    // Initial draw
+    drawWheel(1); // Start with full Rashid section
+  </script>
+
+</body>
+</html>
